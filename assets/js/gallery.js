@@ -25,15 +25,13 @@ jQuery(document).ready(function( $ )
 				uploaddiv.removeClass('drag-over'); 
 			});
 
-			}
-			else
-			{
-				uploaddiv.removeClass('drag-drop');
-				$('#drag-drop-area').unbind('.wp-uploader');
-			}
+		}
+		else
+		{
+			uploaddiv.removeClass('drag-drop');
+			$('#drag-drop-area').unbind('.wp-uploader');
+		}
 	});
-
-	uploader.init();
 
 	// a file was added in the queue
 	uploader.bind('FilesAdded', function( up, files )
@@ -56,8 +54,8 @@ jQuery(document).ready(function( $ )
 			}
 		});
 
-		up.refresh();
-		up.start();
+		uploader.refresh();
+		setTimeout(function(){ uploader.start(); }, 200);
 	});
 
 	uploader.bind('UploadProgress', function(up, file) 
@@ -65,16 +63,14 @@ jQuery(document).ready(function( $ )
 		//$('#' + file.id + " b").html(file.percent + "%");
 	});
 
-
-
 	// a file was uploaded
 	uploader.bind('FileUploaded', function(up, file, response) 
 	{
-	    src = response['response'];	   
+	    var src = response['response'];
 	    $('#gallery .scrollable ul').prepend('<li><img src="'+ src +'"/></li>');
 	});
 
-
+	uploader.init();
 
 	$('#gallery .media-router a').click( function(e) 
 	{
@@ -110,7 +106,6 @@ jQuery(document).ready(function( $ )
 		$('#gallery .delete a').attr('data-ids', ids);
 	});
 
-
 	$('#gallery .delete a').click( function(e) 
 	{
 		e.preventDefault();
@@ -123,7 +118,6 @@ jQuery(document).ready(function( $ )
 			$('#gallery .add-wrap ul').prepend(this);
 		});
 
-	
 		var ids = $(this).data('ids');
 		$.ajax(
 		{
@@ -140,11 +134,7 @@ jQuery(document).ready(function( $ )
 		});
 	});
 
-
-
-
-	// Add
-
+	// --- Add ---
 	$('#gallery .add-wrap ul li').click( function(e) 
 	{
 		e.preventDefault();
@@ -227,6 +217,4 @@ jQuery(document).ready(function( $ )
 			});
         }
     });
-	
-
 });  

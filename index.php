@@ -2,14 +2,15 @@
 /*
 Plugin Name: WordPress-Post-Gallery-Class
 Plugin URI: https://github.com/pontusab/WordPress-Post-Gallery-Class
-Version: 0.1
-Author: Pontus Abrahamsson
+Version: 0.2
+Author: Pontus Abrahamsson & Jonas Skoogh
 */
  
 class WPgallery
 {
-	public $post_type;
-	public $_key;
+	const AJAX_ACTION = 'post_gallery_upload';
+	private $post_type;
+	private $_key;
 
 	public function __construct( $post_type, $_key = '_gallery' )
 	{
@@ -18,9 +19,9 @@ class WPgallery
 
 		add_action( 'add_meta_boxes', array( &$this, 'add_meta_boxes' ) );
 		add_action( 'admin_enqueue_scripts', array( &$this, 'enqueue_scripts') );
-		add_action( 'wp_ajax_gallery_upload', array( &$this, 'handle_upload' ) );
+		add_action( 'wp_ajax_' . self::AJAX_ACTION , array( &$this, 'handle_upload' ) );
 		add_action( 'wp_ajax_remove_attachment', array( &$this, 'remove_attacment' ) );
-		add_action( 'wp_ajax_add_attachment', array( &$this, 'add_attacment' ) );
+		add_action( 'wp_ajax_add_attachment', array( &$this, 'add_attachment' ) );
 	}
 
 	public static function upload_script()
@@ -32,20 +33,22 @@ class WPgallery
 		    'browse_button'       => 'plupload-browse-button',
 		    'container'           => 'plupload-upload-ui',
 		    'drop_element'        => 'drag-drop-area',
-		    'file_data_name'      => 'async-upload',            
-		    'multiple_queues'     => true,
-		    'max_file_size'       => wp_max_upload_size() . 'b',
-		    'url'                 => admin_url( 'admin-ajax.php' ),
+		    'file_data_name'      => 'file-input',
+		    //'multiple_queues'     => true,
+		    'url'                 => admin_url ('admin-ajax.php'),
 		    'flash_swf_url'       => includes_url( 'js/plupload/plupload.flash.swf' ),
 		    'silverlight_xap_url' => includes_url( 'js/plupload/plupload.silverlight.xap' ),
-		    'filters'             => array( array( 'title' => __( 'Allowed Files' ), 'extensions' => '*' ) ),
+		    'filters'             => array(
+		    	'mime_types' 		=> array( array( 'title' => __( 'Allowed Files' ), 'extensions' => '*' ) ),
+		    	'max_file_size'		=> wp_max_upload_size() . 'b'
+		    ),
 		    'multipart'           => true,
 		    'urlstream_upload'    => true,
 		 
 		    // additional post data to send to our ajax hook
 		    'multipart_params'    => array(
 			    '_ajax_nonce' 		  => wp_create_nonce( 'photo-upload' ),
-			    'action'      		  => 'gallery_upload',            // the ajax action name,
+			    'action'      		  => self::AJAX_ACTION,            // the ajax action name,
 			    'post_id'			  => $post->ID
 		    ),
 		);
@@ -58,7 +61,7 @@ class WPgallery
 	{
 		if($this->is_edit_screen())
 		{
-			wp_enqueue_script( 'plupload-all' );
+			wp_enqueue_script( 'plupload' );
 			wp_register_style( 'gallery-css', plugins_url( '/assets/css/gallery.css', __FILE__ ) );
 			wp_register_script( 'gallery-js', plugins_url( '/assets/js/gallery-min.js', __FILE__ ) );
 
@@ -222,7 +225,7 @@ class WPgallery
 	{
 		global $post;
 
-		$attachments = get_post_meta( $post->ID, '_gallery', true ); 
+		$attachments = get_post_meta( $post->ID, $this->_key, true ); 
 		if( !$attachments )
 		{
 			$attachments = array();
@@ -282,7 +285,7 @@ class WPgallery
 	}
 
 
-	public function add_attacment()
+	public function add_attachment()
 	{
 		$order    	 = isset( $_POST['order'] ) ? $_POST['order'] : null;
 		$post_id  	 = $_REQUEST['post_id'];
@@ -335,11 +338,11 @@ class WPgallery
 			$saved = array();
 		}
 
-		$file 	 = $_FILES['async-upload'];
+		$file 	 = $_FILES['file-input'];
 
 		$file_attr  = wp_handle_upload( $file, array(
-			'test_form' => true,
-			'action'    => 'gallery_upload'
+			'test_form' => false,
+			'action'    => self::AJAX_ACTION
 		));
 
 		$attachment = array(
